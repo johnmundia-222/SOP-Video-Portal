@@ -1,0 +1,2001 @@
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { initializeApp } from 'firebase/app';
+import { 
+  getFirestore, collection, addDoc, getDocs, doc, updateDoc, 
+  deleteDoc, query, onSnapshot, serverTimestamp, where, writeBatch, increment, setDoc
+} from 'firebase/firestore';
+import { 
+  getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken 
+} from 'firebase/auth';
+import { 
+  Play, CheckCircle, Share2, Users, Trash2, ExternalLink, 
+  BarChart3, Plus, ArrowRight, Loader2, Video, Send, Settings,
+  X, Info, ShoppingCart, Wrench, Calendar, CreditCard, PlayCircle,
+  Trophy, Check, Maximize2, Minimize2, Eye, LogOut, Download, Mail, User,
+  ChevronDown, ChevronUp, LogIn, UserPlus, Lock, Search, Filter,
+  AlertCircle, RefreshCw, CheckSquare, Square, MoreVertical, ArrowLeft,
+  Sparkles, Clock, Award, TrendingUp, Menu, XCircle, Bell, Zap, Shield, Briefcase
+} from 'lucide-react';
+
+// --- BRANDING ASSETS ---
+
+const FlyntlokLogo = ({ className }: { className?: string }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 114.56 116.16"
+    className={className}
+    role="img"
+    aria-label="Flyntlok Logo"
+  >
+    <g transform="translate(0.14,0.29)">
+      <path
+        style={{ fill: '#cf7a28', strokeWidth: 0.32 }}
+        d="m 86.08,115.14445 c -2.683949,-0.38266 -7.353549,-1.9507 -9.547818,-3.20614 -2.212156,-1.26567 -5.617545,-4.45222 -6.661283,-6.23323 -0.447494,-0.76359 -1.123513,-2.14361 -1.502262,-3.06671 C 67.682826,100.96689 67.679258,100.82084 67.499437,67.04 67.337814,36.678781 67.262586,32.909821 66.782384,31.116714 65.719786,27.148889 63.741235,24.284339 60.56,22.107926 L 59.52,21.39642 V 10.69821 0 l 1.04,0.00188644 c 1.625155,0.00294783 7.001504,0.87338089 9.786336,1.58441216 10.730173,2.739656 18.609712,9.5727234 21.610512,18.7404494 1.641091,5.013682 1.591094,3.995603 1.783302,36.313252 l 0.17985,30.24 1.002006,2.114736 c 1.427268,3.01225 2.71194,3.922224 5.754154,4.075846 1.85475,0.09366 2.94797,-0.06282 5.30974,-0.760022 4.51275,-1.332186 4.63492,-1.338774 4.8597,-0.262131 0.10468,0.501363 0.84195,4.935721 1.63838,9.854121 1.16863,7.21693 1.36971,9.01961 1.04204,9.34186 -0.93102,0.91562 -11.01587,3.29279 -16.72602,3.9426 -3.40753,0.38777 -7.824707,0.37023 -10.72,-0.0426 z M 12.16,88.142256 C 12.16,70.980416 12.049224,62.150941 11.828741,61.738963 11.520107,61.162275 11.104847,61.12 5.7487411,61.12 H 0 v -9.28 -9.28 h 5.7487411 c 5.1684549,0 5.7792859,-0.05708 6.0513419,-0.565414 0.16643,-0.310976 0.364823,-4.306976 0.440874,-8.88 C 12.398026,23.669805 12.596787,22.515619 14.885148,17.76 19.949995,7.234351 31.699893,1.1971414 49.2,0.12870275 L 52.8,-0.091089 v 10.439448 10.439448 l -0.88,0.194836 c -3.300365,0.730718 -5.168544,1.737341 -7.087075,3.818703 -2.798455,3.035963 -3.943949,7.11602 -3.802304,13.543156 L 41.12,42.4 l 5.84,0.08722 5.84,0.08722 V 51.84 61.105562 l -5.84,0.08722 -5.84,0.08722 -0.16,26.24 -0.16,26.239998 -14.32,0.0833 -14.32,0.0833 z"
+      />
+      <path
+        style={{ fill: '#2e69b3', strokeWidth: 0.32 }}
+        d="m 86.08,115.14445 c -2.683949,-0.38266 -7.353549,-1.9507 -9.547818,-3.20614 -2.212156,-1.26567 -5.617545,-4.45222 -6.661283,-6.23323 -0.447494,-0.76359 -1.123513,-2.14361 -1.502262,-3.06671 C 67.682826,100.96689 67.679258,100.82084 67.499437,67.04 67.337814,36.678781 67.262586,32.909821 66.782384,31.116714 65.719786,27.148889 63.741235,24.284339 60.56,22.107926 L 59.52,21.39642 V 10.69821 0 l 1.04,0.00188644 c 1.625155,0.00294783 7.001504,0.87338089 9.786336,1.58441216 10.730173,2.739656 18.609712,9.5727234 21.610512,18.7404494 1.641091,5.013682 1.591094,3.995603 1.783302,36.313252 l 0.17985,30.24 1.002006,2.114736 c 1.427268,3.01225 2.71194,3.922224 5.754154,4.075846 1.85475,0.09366 2.94797,-0.06282 5.30974,-0.760022 4.51275,-1.332186 4.63492,-1.338774 4.8597,-0.262131 0.10468,0.501363 0.84195,4.935721 1.63838,9.854121 1.16863,7.21693 1.36971,9.01961 1.04204,9.34186 -0.93102,0.91562 -11.01587,3.29279 -16.72602,3.9426 -3.40753,0.38777 -7.824707,0.37023 -10.72,-0.0426 z"
+      />
+    </g>
+  </svg>
+);
+
+// --- CONFIGURATION & DATA ---
+
+const VIDEO_DATABASE = [
+  { id: 'v1', category: 'Introductions', title: 'Overview Introduction', duration: '5:30', url: 'https://drive.google.com/file/d/1JNA3bewjBietlqHYMd1wwL_JxY-nBtgb/view?usp=sharing' },
+  { id: 'v2', category: 'Introductions', title: 'Dashboard Overview', duration: '4:15', url: 'https://drive.google.com/file/d/1L5UJbfu1YCER5aXymu2e9JSvbPAQfJQy/view?usp=sharing' },
+  { id: 'v3', category: 'Sales Order Process', title: 'Sales Order Creation', duration: '8:45', url: 'https://drive.google.com/file/d/11zLOgE08HesTYRxRYRr6NExmBNNeSGKz/view?usp=drive_link' },
+  { id: 'v4', category: 'Sales Order Process', title: 'Equipment Sales', duration: '6:20', url: 'https://drive.google.com/file/d/1QbDYO6jpnsVT49SwHpFUsGjjMy_0sJrS/view?usp=drive_link' },
+  { id: 'v5', category: 'Sales Order Process', title: 'Customer Tab', duration: '5:10', url: 'https://drive.google.com/file/d/1vG1eC3JA0X0qT0Ifq9LftWTCr-uPZDyR/view?usp=drive_link' },
+  { id: 'v6', category: 'Sales Order Process', title: 'Sales Order Actions', duration: '7:30', url: 'https://drive.google.com/file/d/1s2L6WkQOP7ISgjZlm-QRmfZxXV2cqZLe/view?usp=drive_link' },
+  { id: 'v7', category: 'Sales Order Process', title: 'Shipping', duration: '4:50', url: 'https://drive.google.com/file/d/1s2L6WkQOP7ISgjZlm-QRmfZxXV2cqZLe/view?usp=drive_link' },
+  { id: 'v8', category: 'Sales Order Process', title: 'Quote Conversion', duration: '6:45', url: 'https://drive.google.com/file/d/1j6duZJFjBm_TxTP_o6SsztaNd8x5Lwn2/view?usp=drive_link' },
+  { id: 'v9', category: 'Sales Order Process', title: 'Order Details', duration: '5:25', url: 'https://drive.google.com/file/d/1UjbgFReEAlFme6EXD8wSLaUg9YYauNBk/view?usp=drive_link' },
+  { id: 'v10', category: 'Service Work Orders', title: 'Work Order Creation', duration: '9:15', url: 'https://drive.google.com/file/d/1KidRWfcPFTzcDfjlD5cj8C1bjJ1Gt4VH/view?usp=drive_link' },
+  { id: 'v11', category: 'Service Work Orders', title: 'Work Order Page Overview', duration: '7:00', url: 'https://drive.google.com/file/d/1qhhGlgGtQkOjvtlwzOj-v5jNq3Z3iocu/view?usp=drive_link' },
+  { id: 'v12', category: 'Service Work Orders', title: 'Info Tab', duration: '4:30', url: 'https://drive.google.com/file/d/1n01X1nHhIlXsNHpnjmpAfVL_AW5s-3Lf/view?usp=drive_link' },
+  { id: 'v13', category: 'Service Work Orders', title: 'Jobs Tab', duration: '6:10', url: 'https://drive.google.com/file/d/1mi1Vo6950Ks3E3nUhreHbwyZ7-1LFuhW/view?usp=drive_link' },
+  { id: 'v14', category: 'Service Work Orders', title: 'Estimates Tab', duration: '8:20', url: 'https://drive.google.com/file/d/1q1TGD7SmkcmOBLRRRU6qyK5F_mvXcKM8/view?usp=drive_link' },
+  { id: 'v15', category: 'Service Work Orders', title: 'Labor & Performance', duration: '5:45', url: 'https://drive.google.com/file/d/1gen8Fx8ZeXRzaAq7QjySZ3l0wsGKYMeC/view?usp=drive_link' },
+  { id: 'v16', category: 'Service Work Orders', title: 'Completing & Invoicing', duration: '7:35', url: 'https://drive.google.com/file/d/1Dmw_dsW9V8FiZKu0gZibdT5s_gZVT5ek/view?usp=drive_link' },
+  { id: 'v17', category: 'Rental Module', title: 'Rental Creation', duration: '6:50', url: 'https://drive.google.com/file/d/1QGEU6VSSJGNuzwGPZ07zayvSI3k0sTt0/view?usp=drive_link' },
+  { id: 'v18', category: 'Rental Module', title: 'Rental Contract', duration: '8:00', url: 'https://drive.google.com/file/d/1deg0FShc2kEIsHei65MpwR4RyZjJQDTC/view?usp=drive_link' },
+  { id: 'v19', category: 'Rental Module', title: 'Rental Billing', duration: '5:15', url: 'https://drive.google.com/file/d/1zg7DRHGIsGmWyA_enUBrp_BeQ6CizHlv/view?usp=drive_link' },
+  { id: 'v20', category: 'Purchasing', title: 'Special Orders', duration: '7:25', url: 'https://drive.google.com/file/d/1NrSVTuYndtzwj_iLLBnJuG9nKVmj7lSy/view?usp=drive_link' },
+  { id: 'v21', category: 'Purchasing', title: 'Purchasing Hub', duration: '6:30', url: 'https://drive.google.com/file/d/1KCTqW6d3IK-Nw_3JaLFmOJmQnM90LoGQ/view?usp=drive_link' },
+  { id: 'v22', category: 'Purchasing', title: 'Purchase Order Page', duration: '8:10', url: 'https://drive.google.com/file/d/1F5xMJQmRiZkNCQNmNwfgYYjrGrVVO3u0/view?usp=drive_link' },
+];
+
+const DEPARTMENT_CONFIG: any = {
+  'Introductions': { icon: Info, color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-200', gradient: 'from-blue-500 to-blue-600' },
+  'Sales Order Process': { icon: ShoppingCart, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-200', gradient: 'from-emerald-500 to-emerald-600' },
+  'Service Work Orders': { icon: Wrench, color: 'text-orange-600', bg: 'bg-orange-50', border: 'border-orange-200', gradient: 'from-orange-500 to-orange-600' },
+  'Rental Module': { icon: Calendar, color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-200', gradient: 'from-purple-500 to-purple-600' },
+  'Purchasing': { icon: CreditCard, color: 'text-rose-600', bg: 'bg-rose-50', border: 'border-rose-200', gradient: 'from-rose-500 to-rose-600' }
+};
+
+// --- UTILITY FUNCTIONS ---
+
+const getEmbedUrl = (url: string) => {
+  if (!url || url === '#' || !url.includes('drive.google.com')) return null;
+  const fileId = url.match(/[-\w]{25,}/);
+  if (fileId) {
+    return `https://drive.google.com/file/d/${fileId[0]}/preview`;
+  }
+  return null;
+};
+
+// Fetches the raw thumbnail representation for Google Drive videos
+const getThumbnailUrl = (url: string) => {
+  if (!url || url === '#' || !url.includes('drive.google.com')) return null;
+  const fileId = url.match(/[-\w]{25,}/);
+  if (fileId) {
+    return `https://drive.google.com/thumbnail?id=${fileId[0]}&sz=w800`;
+  }
+  return null;
+};
+
+const getDownloadUrl = (url: string) => {
+  if (!url || url === '#' || !url.includes('drive.google.com')) return null;
+  const fileId = url.match(/[-\w]{25,}/);
+  if (fileId) {
+    return `https://drive.google.com/uc?export=download&id=${fileId[0]}`;
+  }
+  return null;
+};
+
+const formatWatchTime = (seconds: number) => {
+  if (!seconds) return '0m 0s';
+  const hrs = Math.floor(seconds / 3600);
+  const mins = Math.floor((seconds % 3600) / 60);
+  const secs = seconds % 60;
+  if (hrs > 0) return `${hrs}h ${mins}m`;
+  return `${mins}m ${secs}s`;
+};
+
+// --- TOAST NOTIFICATION SYSTEM ---
+
+const Toast = ({ message, type, onClose }: { message: string, type: 'success' | 'error' | 'info', onClose: () => void }) => {
+  useEffect(() => {
+    const timer = setTimeout(onClose, 3000);
+    return () => clearTimeout(timer);
+  }, [onClose]);
+
+  const icons = {
+    success: <CheckCircle className="w-5 h-5" />,
+    error: <AlertCircle className="w-5 h-5" />,
+    info: <Info className="w-5 h-5" />
+  };
+
+  const colors = {
+    success: 'bg-green-50 border-green-200 text-green-800',
+    error: 'bg-red-50 border-red-200 text-red-800',
+    info: 'bg-blue-50 border-blue-200 text-blue-800'
+  };
+
+  return (
+    <div className={`fixed top-4 right-4 z-[100] px-4 py-3 rounded-lg border shadow-lg flex items-center gap-3 animate-in slide-in-from-right ${colors[type]}`}>
+      {icons[type]}
+      <span className="font-medium text-sm">{message}</span>
+      <button onClick={onClose} className="ml-2 hover:opacity-70">
+        <X className="w-4 h-4" />
+      </button>
+    </div>
+  );
+};
+
+const useToast = () => {
+  const [toast, setToast] = useState<{message: string, type: 'success' | 'error' | 'info'} | null>(null);
+  const showToast = useCallback((message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    setToast({ message, type });
+  }, []);
+  const hideToast = useCallback(() => setToast(null), []);
+  return { toast, showToast, hideToast };
+};
+
+// --- FIREBASE INITIALIZATION ---
+
+let app: any, auth: any, db: any;
+let appId = 'default-app-id';
+
+try {
+  // @ts-ignore
+  const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+  app = initializeApp(firebaseConfig);
+  auth = getAuth(app);
+  db = getFirestore(app);
+  // @ts-ignore
+  appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+} catch (error) {
+  console.error('Firebase initialization error:', error);
+}
+
+// --- MAIN APP COMPONENT ---
+
+export default function App() {
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [currentView, setCurrentView] = useState('loading');
+  const [portalId, setPortalId] = useState<string | null>(null);
+  const { toast, showToast, hideToast } = useToast();
+
+  useEffect(() => {
+    const initAuth = async () => {
+      try {
+        // @ts-ignore
+        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+          // @ts-ignore
+          await signInWithCustomToken(auth, __initial_auth_token);
+        } else {
+          await signInAnonymously(auth);
+        }
+      } catch (error) {
+        console.error('Auth error:', error);
+        showToast('Authentication failed', 'error');
+      }
+    };
+    
+    if (auth) {
+      initAuth();
+      const unsubscribe = onAuthStateChanged(auth, (u) => {
+        setUser(u);
+        setLoading(false);
+      });
+      return () => unsubscribe();
+    } else {
+      setLoading(false);
+    }
+  }, [showToast]);
+
+  useEffect(() => {
+    if (loading) return;
+    const params = new URLSearchParams(window.location.search);
+    const pid = params.get('portal');
+    
+    if (pid) {
+      setPortalId(pid);
+      setCurrentView('client-experience');
+    } else {
+      setCurrentView('consultant-login');
+    }
+  }, [loading]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
+        <div className="text-center">
+          <div className="relative w-16 h-16 mx-auto mb-4">
+            <div className="absolute inset-0 border-4 border-blue-100 rounded-full"></div>
+            <div className="absolute inset-0 border-4 border-[#2e69b3] rounded-full border-t-transparent animate-spin"></div>
+          </div>
+          <p className="text-slate-600 font-medium">Loading Portal...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-slate-50 font-sans text-slate-800 antialiased">
+      {toast && <Toast {...toast} onClose={hideToast} />}
+      {currentView === 'consultant-login' && (
+        <ConsultantLogin onLogin={() => setCurrentView('consultant-dashboard')} />
+      )}
+      {currentView === 'consultant-dashboard' && (
+        <ConsultantDashboard user={user} showToast={showToast} />
+      )}
+      {currentView === 'client-experience' && (
+        <ClientExperience portalId={portalId} showToast={showToast} />
+      )}
+    </div>
+  );
+}
+
+// --- CLIENT EXPERIENCE WRAPPER ---
+
+function ClientExperience({ portalId, showToast, isPreview = false }: { portalId: string | null, showToast: any, isPreview?: boolean }) {
+  const [view, setView] = useState('loading');
+
+  useEffect(() => {
+    // If we are in preview mode, we might have auto-created a user
+    // Or if normal user, check local storage for session
+    const localUser = localStorage.getItem(`training_portal_user_${portalId}`);
+    if (localUser) {
+      setView('hub');
+    } else {
+      setView('choice');
+    }
+  }, [portalId, isPreview]); // Re-run if preview status changes
+
+  const handleQuickStart = () => {
+    // Immediate mocked login with all access for admins - THIS SHOULD NOT NORMALLY BE HIT IN PREVIEW AS WE AUTO-LOGIN
+    const mockUser = {
+      id: `preview-${portalId}`,
+      portalId,
+      firstName: 'Admin',
+      lastName: 'Preview',
+      name: 'Admin Preview',
+      email: 'admin@preview.com',
+      role: 'Administrator',
+      departments: Object.keys(DEPARTMENT_CONFIG),
+      watched: [],
+      watchTimes: {},
+      status: 'in-progress',
+      isPreview: true,
+      joinedAt: new Date().toISOString()
+    };
+    localStorage.setItem(`training_portal_user_${portalId}`, JSON.stringify(mockUser));
+    showToast('⚡ Quick Access: Simulation Started', 'success');
+    setView('hub');
+  };
+
+  if (view === 'loading') {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="animate-spin w-8 h-8 text-[#2e69b3]" />
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {view === 'choice' && (
+        <ClientEntryChoice
+          portalId={portalId}
+          onSelectNew={() => setView('onboard')}
+          onSelectReturning={() => setView('login')}
+          onQuickStart={handleQuickStart}
+          isPreview={isPreview}
+        />
+      )}
+      {view === 'login' && (
+        <ClientLogin
+          portalId={portalId}
+          onLoginSuccess={() => setView('hub')}
+          onBack={() => setView('choice')}
+          showToast={showToast}
+          isPreview={isPreview}
+        />
+      )}
+      {view === 'onboard' && (
+        <ClientOnboarding
+          portalId={portalId}
+          onJoin={() => setView('hub')}
+          onBack={() => setView('choice')}
+          showToast={showToast}
+          isPreview={isPreview}
+        />
+      )}
+      {view === 'hub' && (
+        <ClientHub
+          portalId={portalId}
+          showToast={showToast}
+          isPreview={isPreview}
+          onLogout={() => {
+            localStorage.removeItem(`training_portal_user_${portalId}`);
+            setView('choice');
+          }}
+        />
+      )}
+    </>
+  );
+}
+
+// --- CLIENT ENTRY COMPONENTS ---
+
+function ClientEntryChoice({ onSelectNew, onSelectReturning, onQuickStart, isPreview }: any) {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-slate-50 to-blue-50 flex flex-col items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        <div className="text-center mb-10">
+          <div className="inline-flex items-center justify-center w-24 h-24 bg-white rounded-3xl mb-6 shadow-xl border border-white/50">
+            <FlyntlokLogo className="w-16 h-16" />
+          </div>
+          <h1 className="text-3xl font-bold text-slate-900 mb-2">Training Portal</h1>
+          <p className="text-slate-500">
+            {isPreview ? 'Admin Preview Mode' : 'Welcome! Please select an option to continue.'}
+          </p>
+        </div>
+
+        <div className="space-y-4">
+          {isPreview && (
+            <button
+              onClick={onQuickStart}
+              className="w-full p-4 bg-amber-50 border-2 border-amber-200 rounded-2xl hover:border-amber-400 hover:shadow-lg hover:shadow-amber-100 group transition-all flex items-center text-left"
+            >
+              <div className="w-14 h-14 bg-amber-100 rounded-xl flex items-center justify-center mr-5 group-hover:scale-110 transition-transform">
+                <Zap className="w-7 h-7 text-amber-600" />
+              </div>
+              <div className="flex-1">
+                <div className="font-bold text-lg text-amber-900 mb-1">Quick Access (Admin)</div>
+                <div className="text-sm text-amber-700">Skip onboarding and view portal immediately</div>
+              </div>
+              <ArrowRight className="w-5 h-5 text-amber-400 group-hover:text-amber-600 group-hover:translate-x-1 transition-all" />
+            </button>
+          )}
+
+          <button
+            onClick={onSelectNew}
+            className="w-full p-6 bg-white border-2 border-slate-100 rounded-2xl hover:border-[#2e69b3] hover:shadow-lg hover:shadow-blue-100 group transition-all flex items-center text-left"
+          >
+            <div className="w-14 h-14 bg-blue-50 rounded-xl flex items-center justify-center mr-5 group-hover:scale-110 transition-transform">
+              <UserPlus className="w-7 h-7 text-[#2e69b3]" />
+            </div>
+            <div className="flex-1">
+              <div className="font-bold text-lg text-slate-900 mb-1">I'm a New User</div>
+              <div className="text-sm text-slate-500">Create a profile to start your training journey</div>
+            </div>
+            <ArrowRight className="w-5 h-5 text-slate-300 group-hover:text-[#2e69b3] group-hover:translate-x-1 transition-all" />
+          </button>
+
+          <button
+            onClick={onSelectReturning}
+            className="w-full p-6 bg-white border-2 border-slate-100 rounded-2xl hover:border-[#cf7a28] hover:shadow-lg hover:shadow-orange-100 group transition-all flex items-center text-left"
+          >
+            <div className="w-14 h-14 bg-orange-50 rounded-xl flex items-center justify-center mr-5 group-hover:scale-110 transition-transform">
+              <LogIn className="w-7 h-7 text-[#cf7a28]" />
+            </div>
+            <div className="flex-1">
+              <div className="font-bold text-lg text-slate-900 mb-1">I'm a Returning User</div>
+              <div className="text-sm text-slate-500">Log in to resume your progress</div>
+            </div>
+            <ArrowRight className="w-5 h-5 text-slate-300 group-hover:text-[#cf7a28] group-hover:translate-x-1 transition-all" />
+          </button>
+        </div>
+
+        <p className="text-center text-sm text-slate-400 mt-8">
+          Need help? Contact your system administrator
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function ClientLogin({ portalId, onLoginSuccess, onBack, showToast, isPreview }: any) {
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    // MOCK LOGIN FOR ADMIN PREVIEW
+    if (isPreview) {
+      setTimeout(() => {
+        const mockUser = {
+          id: `preview-${portalId}`,
+          portalId,
+          firstName: firstName || 'Admin',
+          lastName: lastName || 'Preview',
+          name: `${firstName} ${lastName}`,
+          role: 'Viewer',
+          departments: Object.keys(DEPARTMENT_CONFIG), 
+          watched: [],
+          watchTimes: {},
+          status: 'in-progress',
+          isPreview: true,
+          joinedAt: new Date().toISOString()
+        };
+        localStorage.setItem(`training_portal_user_${portalId}`, JSON.stringify(mockUser));
+        showToast('Entering Simulation Mode', 'success');
+        onLoginSuccess();
+      }, 800);
+      return;
+    }
+
+    try {
+      const q = query(
+        collection(db, 'artifacts', appId, 'public', 'data', 'client_progress'),
+        where('portalId', '==', portalId)
+      );
+
+      const snapshot = await getDocs(q);
+      const userDoc = snapshot.docs.find(doc => {
+        const data = doc.data();
+        return (
+          data.firstName?.toLowerCase().trim() === firstName.toLowerCase().trim() &&
+          data.lastName?.toLowerCase().trim() === lastName.toLowerCase().trim()
+        );
+      });
+
+      if (userDoc) {
+        const userData = { id: userDoc.id, ...userDoc.data() };
+        localStorage.setItem(`training_portal_user_${portalId}`, JSON.stringify(userData));
+        showToast('Welcome back!', 'success');
+        onLoginSuccess();
+      } else {
+        setError(`No user found with the name "${firstName} ${lastName}". Please check the spelling or go back and create a new user.`);
+      }
+    } catch (err) {
+      console.error(err);
+      setError("An error occurred. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 flex flex-col items-center justify-center p-4">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl shadow-slate-200/50 p-8 border border-slate-100">
+        <button
+          onClick={onBack}
+          className="text-sm text-slate-400 hover:text-slate-600 mb-6 flex items-center gap-1 transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" /> Back
+        </button>
+
+        <div className="mb-8">
+          <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mb-6 border border-slate-100 shadow-sm">
+             <FlyntlokLogo className="w-10 h-10" />
+          </div>
+          <h2 className="text-2xl font-bold text-slate-900 mb-2">Welcome Back {isPreview && '(Preview)'}</h2>
+          <p className="text-slate-500">Enter your details to resume training.</p>
+        </div>
+
+        <form onSubmit={handleLogin} className="space-y-5">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">First Name</label>
+              <input
+                value={firstName}
+                onChange={e => { setFirstName(e.target.value); setError(null); }}
+                className="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#2e69b3] focus:border-transparent outline-none transition-all"
+                placeholder="John"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Last Name</label>
+              <input
+                value={lastName}
+                onChange={e => { setLastName(e.target.value); setError(null); }}
+                className="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#2e69b3] focus:border-transparent outline-none transition-all"
+                placeholder="Doe"
+                required
+              />
+            </div>
+          </div>
+
+          {error && (
+            <div className="p-4 bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-3.5 bg-[#2e69b3] hover:bg-[#255491] disabled:bg-slate-300 text-white font-semibold rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-200"
+          >
+            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <LogIn className="w-5 h-5" />}
+            Resume Training
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// --- CONSULTANT COMPONENTS ---
+
+function ConsultantLogin({ onLogin }: any) {
+  const [securityCode, setSecurityCode] = useState('');
+  const [error, setError] = useState('');
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (securityCode === '2018') {
+      onLogin();
+    } else {
+      setError('Invalid Security Code');
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-orange-100 via-slate-100 to-blue-100 flex flex-col items-center justify-center p-4">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl shadow-slate-200/50 p-8 border border-slate-100">
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-24 h-24 bg-white rounded-2xl mb-6 shadow-lg shadow-slate-100 border border-slate-50">
+            <FlyntlokLogo className="w-16 h-16" />
+          </div>
+          <h2 className="text-2xl font-bold text-slate-900 mb-2">Consultant Access</h2>
+          <p className="text-slate-500">Secure login for training management</p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-2">
+            <label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+              <Shield className="w-4 h-4 text-[#2e69b3]" /> Security Code
+            </label>
+            <input 
+              type="password"
+              value={securityCode}
+              onChange={(e) => { setSecurityCode(e.target.value); setError(''); }}
+              className={`w-full p-3.5 border rounded-xl outline-none transition-all ${error ? 'border-red-300 bg-red-50 focus:border-red-500' : 'border-slate-200 focus:border-[#2e69b3] focus:ring-4 focus:ring-blue-500/10'}`}
+              placeholder="Enter access code..."
+              autoFocus
+            />
+            {error && (
+              <p className="text-sm text-red-600 flex items-center gap-1 animate-in slide-in-from-top-1">
+                <AlertCircle className="w-3.5 h-3.5" /> {error}
+              </p>
+            )}
+          </div>
+
+          <button
+            type="submit"
+            className="w-full py-3.5 bg-[#2e69b3] hover:bg-[#255491] text-white font-semibold rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-200 hover:shadow-xl hover:-translate-y-0.5"
+          >
+            Enter Dashboard <ArrowRight className="w-4 h-4" />
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function ConsultantDashboard({ user, showToast }: any) {
+  const [portals, setPortals] = useState<any[]>([]);
+  const [showCreate, setShowCreate] = useState(false);
+  const [clientProgressData, setClientProgressData] = useState<any[]>([]);
+  const [selectedPortal, setSelectedPortal] = useState<any>(null);
+  const [previewPortal, setPreviewPortal] = useState<any>(null);
+  const [expandedUserIds, setExpandedUserIds] = useState(new Set());
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (!user || !db) return;
+    
+    setIsLoading(true);
+    const q = collection(db, 'artifacts', appId, 'public', 'data', 'portals');
+    const unsub = onSnapshot(q, (snapshot) => {
+      const p = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      p.sort((a: any, b: any) => b.createdAt?.seconds - a.createdAt?.seconds);
+      setPortals(p);
+      setIsLoading(false);
+    }, (error) => {
+      console.error('Error fetching portals:', error);
+      showToast('Error loading portals', 'error');
+      setIsLoading(false);
+    });
+    return () => unsub();
+  }, [user, showToast]);
+
+  useEffect(() => {
+    if (!user || !db) return;
+    const q = collection(db, 'artifacts', appId, 'public', 'data', 'client_progress');
+    const unsub = onSnapshot(q, (snapshot) => {
+      const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      setClientProgressData(data);
+    });
+    return () => unsub();
+  }, [user]);
+
+  const toggleUserExpand = (userId: any) => {
+    const newSet = new Set(expandedUserIds);
+    if (newSet.has(userId)) {
+      newSet.delete(userId);
+    } else {
+      newSet.add(userId);
+    }
+    setExpandedUserIds(newSet);
+  };
+
+  const handleCreatePortal = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const formData = new FormData(e.target as HTMLFormElement);
+    
+    try {
+      await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'portals'), {
+        company: formData.get('company'),
+        contactEmail: formData.get('email'),
+        consultantEmail: formData.get('consultantEmail'),
+        createdAt: serverTimestamp(),
+        consultantId: user.uid,
+        status: 'active'
+      });
+      showToast('Portal created successfully!', 'success');
+      setShowCreate(false);
+      (e.target as HTMLFormElement).reset();
+    } catch (error) {
+      console.error(error);
+      showToast('Failed to create portal', 'error');
+    }
+  };
+
+  const handleDeletePortal = async (portalId: string) => {
+    if (!confirm('Are you sure? This will delete all data for this client.')) return;
+    
+    try {
+      await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'portals', portalId));
+      const relatedProgress = clientProgressData.filter(p => p.portalId === portalId);
+      
+      const batch = writeBatch(db);
+      relatedProgress.forEach(p => {
+        batch.delete(doc(db, 'artifacts', appId, 'public', 'data', 'client_progress', p.id));
+      });
+      await batch.commit();
+      
+      // Also clear local storage for preview user
+      localStorage.removeItem(`training_portal_user_${portalId}`);
+
+      showToast('Portal deleted', 'success');
+      if (selectedPortal?.id === portalId) setSelectedPortal(null);
+    } catch (error) {
+      console.error(error);
+      showToast('Failed to delete portal', 'error');
+    }
+  };
+
+  const handleStartPreview = async (portal: any) => {
+    // Automatically create a simulated user for the admin in FIRESTORE
+    // We use a known ID format so we can track it, and delete it later.
+    const previewUserId = `preview-${portal.id}`;
+    
+    const mockUser = {
+      portalId: portal.id,
+      firstName: 'Admin',
+      lastName: 'Preview',
+      name: 'Admin Preview (Simulated)',
+      email: portal.consultantEmail || 'admin@preview.com',
+      role: 'Administrator',
+      departments: Object.keys(DEPARTMENT_CONFIG),
+      watched: [],
+      watchTimes: {},
+      status: 'in-progress',
+      joinedAt: serverTimestamp(), // Use server timestamp so it looks real on dashboard
+      isPreview: true,
+      isTransient: true // Flag to identify for cleanup
+    };
+
+    try {
+        // Save to Firestore so it shows up on dashboard
+        await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'client_progress', previewUserId), mockUser);
+        
+        // Also set in local storage for the client app to pick up immediately
+        localStorage.setItem(`training_portal_user_${portal.id}`, JSON.stringify({
+            id: previewUserId,
+            ...mockUser,
+            joinedAt: new Date().toISOString() // Fallback for local
+        }));
+        
+        setPreviewPortal(portal);
+        showToast('Entering Preview Mode. User created.', 'success');
+    } catch (error) {
+        console.error("Failed to create preview user", error);
+        showToast("Failed to initialize preview", "error");
+    }
+  };
+
+  const handleExitPreview = async () => {
+    if (!previewPortal) return;
+    const previewUserId = `preview-${previewPortal.id}`;
+    
+    try {
+        // Cleanup the transient user to "not clog the database"
+        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'client_progress', previewUserId));
+        localStorage.removeItem(`training_portal_user_${previewPortal.id}`);
+        setPreviewPortal(null);
+        showToast('Exited Preview. Temporary user deleted.', 'success');
+    } catch (error) {
+        console.error("Error cleaning up preview user", error);
+        setPreviewPortal(null);
+    }
+  };
+
+  const filteredPortals = portals.filter(p => 
+    p.company?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    p.contactEmail?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // Users from Firestore are enough now since we save the preview user to Firestore transiently
+  const getUsersForPortal = (portalId: string) => {
+    return clientProgressData.filter(u => u.portalId === portalId);
+  };
+
+  if (previewPortal) {
+    return (
+      <div className="min-h-screen bg-slate-100">
+        <div className="bg-slate-900 text-white px-6 py-3 flex justify-between items-center sticky top-0 z-[60] shadow-md">
+          <div className="flex items-center gap-3">
+            <div className="px-3 py-1 bg-amber-500 text-slate-900 text-xs font-bold rounded uppercase tracking-wider">
+              Admin Preview
+            </div>
+            <span className="font-medium text-slate-200">{previewPortal.company}</span>
+          </div>
+          <button
+            onClick={handleExitPreview}
+            className="flex items-center gap-2 text-sm bg-slate-800 hover:bg-slate-700 px-4 py-2 rounded-lg border border-slate-700 transition-colors"
+          >
+            <X className="w-4 h-4" /> Exit Preview
+          </button>
+        </div>
+        <ClientExperience portalId={previewPortal.id} showToast={showToast} isPreview={true} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
+      {/* Top Navigation */}
+      <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+        <div className="max-w-[1600px] mx-auto px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-gradient-to-br from-[#cf7a28] to-[#2e69b3] rounded-lg flex items-center justify-center shadow-sm border border-slate-100">
+              <FlyntlokLogo className="w-5 h-5 text-white" />
+            </div>
+            <h1 className="text-lg font-bold text-slate-800 tracking-tight">Consultant Dashboard</h1>
+          </div>
+          
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={() => setShowCreate(true)}
+              className="bg-[#2e69b3] hover:bg-[#255491] text-white px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-all shadow-md shadow-blue-100"
+            >
+              <Plus className="w-4 h-4" /> New Portal
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Workspace */}
+      <div className="flex-1 max-w-[1600px] w-full mx-auto px-6 py-8 flex gap-8 h-[calc(100vh-64px)] min-h-[600px]">
+        
+        {/* Left Sidebar: Portal List */}
+        <div className="w-1/3 flex flex-col bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden h-full">
+          <div className="p-4 border-b border-slate-100 bg-slate-50/50">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search clients..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-[#2e69b3] outline-none transition-all"
+              />
+            </div>
+          </div>
+          
+          <div className="flex-1 overflow-y-auto p-2 space-y-1">
+            {isLoading ? (
+              <div className="p-8 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-slate-300" /></div>
+            ) : filteredPortals.length === 0 ? (
+              <div className="text-center py-12 text-slate-400 text-sm">No portals found</div>
+            ) : (
+              filteredPortals.map(portal => {
+                const isActive = selectedPortal?.id === portal.id;
+                // Exclude transient users from the count in the sidebar
+                const realUserCount = clientProgressData.filter(u => u.portalId === portal.id && !u.isTransient).length;
+                return (
+                  <button
+                    key={portal.id}
+                    onClick={() => { setSelectedPortal(portal); setExpandedUserIds(new Set()); }}
+                    className={`w-full text-left p-4 rounded-xl transition-all border ${
+                      isActive 
+                        ? 'bg-blue-50 border-blue-200 shadow-sm' 
+                        : 'bg-white border-transparent hover:bg-slate-50 hover:border-slate-100'
+                    }`}
+                  >
+                    <div className="flex justify-between items-start mb-1">
+                      <span className={`font-semibold ${isActive ? 'text-[#2e69b3]' : 'text-slate-700'}`}>{portal.company}</span>
+                      {isActive && <div className="w-2 h-2 rounded-full bg-[#2e69b3] mt-1.5" />}
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-slate-500">
+                      <span>{new Date(portal.createdAt?.seconds * 1000).toLocaleDateString()}</span>
+                      <span className="flex items-center gap-1"><Users className="w-3 h-3" /> {realUserCount}</span>
+                    </div>
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </div>
+
+        {/* Right Content: Details */}
+        <div className="flex-1 bg-white border border-slate-200 rounded-2xl shadow-sm flex flex-col overflow-hidden h-full">
+          {selectedPortal ? (
+            <>
+              {/* Toolbar */}
+              <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/30">
+                <div>
+                  <h2 className="text-xl font-bold text-slate-900">{selectedPortal.company}</h2>
+                  <div className="flex items-center gap-3 text-sm text-slate-500 mt-1">
+                    <span className="flex items-center gap-1.5 bg-white px-2 py-0.5 rounded border border-slate-200">
+                      <Mail className="w-3.5 h-3.5 text-slate-400" /> {selectedPortal.consultantEmail}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => handleStartPreview(selectedPortal)}
+                    className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50 hover:text-[#2e69b3] transition-colors flex items-center gap-2 shadow-sm"
+                  >
+                    <Eye className="w-4 h-4" /> Preview
+                  </button>
+                  <a
+                    href={`?portal=${selectedPortal.id}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50 hover:text-[#2e69b3] transition-colors flex items-center gap-2 shadow-sm"
+                  >
+                    <ExternalLink className="w-4 h-4" /> Open Portal
+                  </a>
+                  <button
+                    onClick={() => handleDeletePortal(selectedPortal.id)}
+                    className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    title="Delete Portal"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Data Table */}
+              <div className="flex-1 overflow-auto">
+                <table className="w-full text-sm text-left">
+                  <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-100 sticky top-0">
+                    <tr>
+                      <th className="px-6 py-4">Employee</th>
+                      <th className="px-6 py-4">Role</th>
+                      <th className="px-6 py-4">Progress</th>
+                      <th className="px-6 py-4">Last Active</th>
+                      <th className="px-6 py-4">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {getUsersForPortal(selectedPortal.id)
+                      .map((user: any) => {
+                        const totalAssigned = VIDEO_DATABASE.filter(v => user.departments?.includes(v.category)).length;
+                        const watched = user.watched?.length || 0;
+                        const percent = totalAssigned > 0 ? Math.round((watched / totalAssigned) * 100) : 0;
+                        const isExpanded = expandedUserIds.has(user.id);
+                        
+                        // Identify Champion visually
+                        const isChampion = user.email && selectedPortal.contactEmail && 
+                                           user.email.toLowerCase().trim() === selectedPortal.contactEmail.toLowerCase().trim();
+                        const isSimulated = user.isTransient || user.isPreview;
+
+                        return (
+                          <React.Fragment key={user.id}>
+                            <tr 
+                              className={`hover:bg-slate-50 cursor-pointer transition-colors ${isExpanded ? 'bg-slate-50' : ''}`}
+                              onClick={() => toggleUserExpand(user.id)}
+                            >
+                              <td className="px-6 py-4 font-medium text-slate-900">
+                                <div className="flex items-center gap-3">
+                                  {isExpanded ? <ChevronUp className="w-4 h-4 text-[#2e69b3]" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+                                  <div>
+                                    <div className="flex items-center gap-2">
+                                      {user.firstName} {user.lastName}
+                                      {isChampion && <span className="text-[10px] bg-blue-100 text-[#2e69b3] px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">Champion</span>}
+                                      {isSimulated && <span className="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">Preview User</span>}
+                                    </div>
+                                    <div className="text-xs text-slate-500 font-normal mt-0.5">{user.email}</div>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 text-slate-500">{user.role}</td>
+                              <td className="px-6 py-4 w-48">
+                                <div className="flex items-center gap-3">
+                                  <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+                                    <div className={`h-full rounded-full ${percent === 100 ? 'bg-emerald-500' : 'bg-[#2e69b3]'}`} style={{ width: `${percent}%` }}></div>
+                                  </div>
+                                  <span className="text-xs font-bold text-slate-700">{percent}%</span>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 text-slate-500">
+                                {user.joinedAt?.toDate ? user.joinedAt.toDate().toLocaleDateString() : 'Just now'}
+                              </td>
+                              <td className="px-6 py-4">
+                                {user.status === 'completed' ? (
+                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100">
+                                    <CheckCircle className="w-3.5 h-3.5" /> Certified
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-100">
+                                    <Clock className="w-3.5 h-3.5" /> In Progress
+                                  </span>
+                                )}
+                              </td>
+                            </tr>
+                            {isExpanded && (
+                              <tr className="bg-slate-50 shadow-inner">
+                                <td colSpan={5} className="px-6 py-6 border-b border-slate-200">
+                                  <div className="ml-7">
+                                    <h4 className="text-xs font-bold uppercase text-slate-400 tracking-wider mb-4">Detailed Video Logs</h4>
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
+                                      {VIDEO_DATABASE.filter(v => user.departments?.includes(v.category)).map(video => {
+                                        const isWatched = user.watched?.includes(video.id);
+                                        const watchTimeSecs = user.watchTimes?.[video.id] || 0;
+                                        
+                                        return (
+                                          <div key={video.id} className={`flex flex-col gap-1 p-3 rounded-lg border text-sm transition-all ${isWatched ? 'bg-white border-emerald-100 shadow-sm' : 'bg-slate-100 border-transparent opacity-60'}`}>
+                                            <div className="flex items-center gap-3">
+                                               <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${isWatched ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-200 text-slate-400'}`}>
+                                                 {isWatched ? <Check className="w-3 h-3" /> : <div className="w-2 h-2 bg-slate-300 rounded-full" />}
+                                               </div>
+                                               <span className={`truncate ${isWatched ? 'text-slate-700 font-medium' : 'text-slate-500'}`}>{video.title}</span>
+                                            </div>
+                                            <div className="flex justify-between items-center ml-8 text-xs text-slate-400">
+                                               <span>Time tracked:</span>
+                                               <span className={`font-semibold ${watchTimeSecs > 0 ? 'text-[#2e69b3]' : 'text-slate-400'}`}>
+                                                 {formatWatchTime(watchTimeSecs)}
+                                               </span>
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                          </React.Fragment>
+                        );
+                      })}
+                      {getUsersForPortal(selectedPortal.id).length === 0 && (
+                        <tr>
+                          <td colSpan={5} className="px-6 py-20 text-center text-slate-400">
+                            <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-100">
+                              <UserPlus className="w-8 h-8 text-slate-300" />
+                            </div>
+                            <p className="font-medium text-slate-600">No learners yet</p>
+                            <p className="text-sm">Share the link to start onboarding users.</p>
+                          </td>
+                        </tr>
+                      )}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center text-slate-400 p-12 bg-slate-50/50">
+              <div className="w-24 h-24 bg-white rounded-3xl flex items-center justify-center mb-6 shadow-sm border border-slate-100">
+                <Briefcase className="w-10 h-10 text-slate-300" />
+              </div>
+              <h3 className="text-xl font-bold text-slate-700 mb-2">Select a Client Portal</h3>
+              <p className="text-slate-500 max-w-sm text-center">
+                Choose a portal from the list on the left to manage users, view progress, and track certifications.
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Create Modal */}
+      {showCreate && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <form onSubmit={handleCreatePortal} className="bg-white rounded-2xl p-8 w-full max-w-md shadow-2xl border border-white/20">
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h3 className="text-xl font-bold text-slate-900">New Client Portal</h3>
+                <p className="text-sm text-slate-500">Set up a dedicated training space</p>
+              </div>
+              <button type="button" onClick={() => setShowCreate(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            
+            <div className="space-y-5">
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Company Name</label>
+                <input
+                  name="company"
+                  required
+                  className="w-full border border-slate-200 rounded-xl p-3.5 focus:ring-4 focus:ring-blue-500/10 focus:border-[#2e69b3] outline-none transition-all"
+                  placeholder="e.g. Acme Logistics"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Main Contact Email (Champion)</label>
+                <input
+                  name="email"
+                  type="email"
+                  required
+                  className="w-full border border-slate-200 rounded-xl p-3.5 focus:ring-4 focus:ring-blue-500/10 focus:border-[#2e69b3] outline-none transition-all"
+                  placeholder="admin@client.com"
+                />
+                <p className="text-xs text-slate-500 mt-1">This user's completion will trigger the notification.</p>
+              </div>
+              <div className="pt-4 border-t border-slate-100">
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Consultant Email (Notifications)</label>
+                <input
+                  name="consultantEmail"
+                  type="email"
+                  required
+                  className="w-full border border-blue-200 bg-blue-50/30 rounded-xl p-3.5 focus:ring-4 focus:ring-blue-500/10 focus:border-[#2e69b3] outline-none transition-all"
+                  placeholder="you@flyntlok.com"
+                />
+              </div>
+            </div>
+            
+            <div className="flex gap-3 mt-10">
+              <button
+                type="button"
+                onClick={() => setShowCreate(false)}
+                className="flex-1 py-3.5 text-slate-600 hover:bg-slate-50 rounded-xl font-semibold transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="flex-1 py-3.5 bg-[#2e69b3] hover:bg-[#255491] text-white rounded-xl font-semibold transition-all shadow-lg shadow-blue-100"
+              >
+                Create Portal
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// --- CLIENT ONBOARDING ---
+
+function ClientOnboarding({ portalId, onJoin, onBack, showToast, isPreview }: any) {
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
+  const [role, setRole] = useState('');
+  const [selectedDepts, setSelectedDepts] = useState(['Introductions']);
+  const [portalInfo, setPortalInfo] = useState<any>(null);
+  const [checkingDuplicate, setCheckingDuplicate] = useState(false);
+
+  useEffect(() => {
+    if (!portalId || !db) return;
+    const fetchPortal = async () => {
+      try {
+        const snap = await getDocs(query(collection(db, 'artifacts', appId, 'public', 'data', 'portals')));
+        const found = snap.docs.find(d => d.id === portalId);
+        if (found) setPortalInfo(found.data());
+      } catch (error) {
+        console.error('Error fetching portal:', error);
+      }
+    };
+    fetchPortal();
+  }, [portalId]);
+
+  const toggleDept = (dept: string) => {
+    if (dept === 'Introductions') return;
+    if (selectedDepts.includes(dept)) {
+      setSelectedDepts(selectedDepts.filter(d => d !== dept));
+    } else {
+      setSelectedDepts([...selectedDepts, dept]);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!firstName || !lastName || !email || !role || selectedDepts.length === 0) {
+      showToast('Please fill in all fields', 'error');
+      return;
+    }
+
+    setCheckingDuplicate(true);
+
+    // MOCK SIGNUP FOR ADMIN PREVIEW - DO NOT SAVE TO DB to avoid clogging
+    if (isPreview) {
+      setTimeout(() => {
+        const userData = {
+          id: `preview-manual-${Date.now()}`, // Temporary ID
+          portalId,
+          firstName,
+          lastName,
+          name: `${firstName} ${lastName}`,
+          email,
+          role,
+          departments: selectedDepts,
+          watched: [],
+          watchTimes: {},
+          status: 'in-progress',
+          isPreview: true,
+          joinedAt: new Date().toISOString()
+        };
+        localStorage.setItem(`training_portal_user_${portalId}`, JSON.stringify(userData));
+        showToast('Entering Simulation Mode', 'success');
+        onJoin();
+        setCheckingDuplicate(false);
+      }, 800);
+      return;
+    }
+
+    try {
+      const q = query(
+        collection(db, 'artifacts', appId, 'public', 'data', 'client_progress'),
+        where('portalId', '==', portalId)
+      );
+      const snapshot = await getDocs(q);
+      const duplicate = snapshot.docs.find(doc => {
+        const d = doc.data();
+        return d.firstName?.toLowerCase().trim() === firstName.toLowerCase().trim() &&
+               d.lastName?.toLowerCase().trim() === lastName.toLowerCase().trim();
+      });
+
+      if (duplicate) {
+        showToast('User already exists. Please login instead.', 'error');
+        setCheckingDuplicate(false);
+        return;
+      }
+
+      const userData = {
+        portalId,
+        firstName,
+        lastName,
+        name: `${firstName} ${lastName}`,
+        email,
+        role,
+        departments: selectedDepts,
+        watched: [],
+        watchTimes: {},
+        status: 'in-progress',
+        joinedAt: serverTimestamp()
+      };
+
+      const userRef = await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'client_progress'), userData);
+      localStorage.setItem(`training_portal_user_${portalId}`, JSON.stringify({ id: userRef.id, ...userData }));
+      showToast('Welcome! Your profile has been created.', 'success');
+      onJoin();
+    } catch (err) {
+      console.error(err);
+      showToast('An error occurred. Please try again.', 'error');
+    } finally {
+      setCheckingDuplicate(false);
+    }
+  };
+
+  const departmentsList = Object.keys(DEPARTMENT_CONFIG);
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 flex flex-col items-center justify-center p-4 lg:p-8">
+      <div className="w-full max-w-2xl">
+        <button
+          onClick={onBack}
+          className="mb-6 text-sm text-slate-400 hover:text-slate-600 flex items-center gap-1 transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" /> Back
+        </button>
+
+        <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/50 p-8 lg:p-12 border border-slate-100">
+          <div className="text-center mb-10">
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-blue-50 rounded-3xl mb-6 shadow-lg border border-white">
+              <FlyntlokLogo className="w-12 h-12" />
+            </div>
+            <h1 className="text-3xl font-bold text-slate-900 mb-2">
+              {isPreview ? 'Preview Setup' : `Welcome${portalInfo ? `, ${portalInfo.company}` : ''}`}
+            </h1>
+            <p className="text-slate-500">Let's set up your training profile</p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">First Name</label>
+                <input
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  className="w-full p-3.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#2e69b3] focus:border-transparent outline-none transition-all"
+                  placeholder="John"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Last Name</label>
+                <input
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  className="w-full p-3.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#2e69b3] focus:border-transparent outline-none transition-all"
+                  placeholder="Doe"
+                  required
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Email Address</label>
+              <div className="relative">
+                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full p-3.5 pl-12 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#2e69b3] focus:border-transparent outline-none transition-all"
+                  placeholder="john.doe@company.com"
+                  required
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Your Role</label>
+              <div className="relative">
+                <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                <input
+                  value={role}
+                  onChange={(e) => setRole(e.target.value)}
+                  className="w-full p-3.5 pl-12 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#2e69b3] focus:border-transparent outline-none transition-all"
+                  placeholder="e.g. Sales Manager, Service Technician"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="pt-6 border-t border-slate-100">
+              <label className="block text-sm font-semibold text-slate-700 mb-4">Select Your Departments</label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {departmentsList.map(dept => {
+                  const config = DEPARTMENT_CONFIG[dept] || {};
+                  const Icon = config.icon || Info;
+                  const isSelected = selectedDepts.includes(dept);
+                  const isLocked = dept === 'Introductions';
+
+                  return (
+                    <div
+                      key={dept}
+                      onClick={() => toggleDept(dept)}
+                      className={`
+                        relative p-4 rounded-xl border-2 transition-all duration-200 flex items-center gap-4
+                        ${isLocked ? 'border-slate-200 bg-slate-50 cursor-not-allowed' : 'cursor-pointer hover:shadow-md'}
+                        ${!isLocked && isSelected ? 'border-[#2e69b3] bg-blue-50/50 shadow-sm' : !isLocked && 'border-slate-200 bg-white hover:border-blue-300'}
+                      `}
+                    >
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isSelected ? 'bg-[#2e69b3] text-white' : 'bg-slate-100 text-slate-500'}`}>
+                        <Icon className="w-5 h-5" />
+                      </div>
+                      <div className="flex-1">
+                        <span className={`font-semibold block ${isSelected ? 'text-[#2e69b3]' : 'text-slate-700'}`}>{dept}</span>
+                        {isLocked && <span className="text-xs text-slate-500">Required</span>}
+                      </div>
+                      {isSelected && (
+                        <CheckCircle className={`w-5 h-5 ${isLocked ? 'text-slate-400' : 'text-[#2e69b3]'}`} />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={checkingDuplicate}
+              className="w-full py-4 bg-[#2e69b3] hover:bg-[#255491] disabled:bg-slate-300 text-white font-bold text-lg rounded-xl shadow-lg shadow-blue-200 transition-all flex items-center justify-center gap-2"
+            >
+              {checkingDuplicate ? <Loader2 className="w-6 h-6 animate-spin" /> : <ArrowRight className="w-6 h-6" />}
+              {isPreview ? 'Enter Simulation' : 'Start Training'}
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// --- CLIENT HUB (MAIN TRAINING INTERFACE) ---
+
+function ClientHub({ portalId, showToast, onLogout, isPreview }: any) {
+  const [userData, setUserData] = useState<any>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [playingVideoId, setPlayingVideoId] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [portalInfo, setPortalInfo] = useState<any>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
+
+  // Time Tracking Refs
+  const activeVideoRef = useRef<string | null>(null);
+  const sessionStartRef = useRef<number | null>(null);
+  const stateRefs = useRef({ isPreview, userId, userData, portalId });
+
+  // Update Refs on change for cleanup closures
+  useEffect(() => {
+    stateRefs.current = { isPreview, userId, userData, portalId };
+  }, [isPreview, userId, userData, portalId]);
+
+  useEffect(() => {
+    const fetchPortal = async () => {
+      if (!db) return;
+      try {
+        const snap = await getDocs(query(collection(db, 'artifacts', appId, 'public', 'data', 'portals')));
+        const found = snap.docs.find(d => d.id === portalId);
+        if (found) setPortalInfo(found.data());
+      } catch (error) {
+        console.error('Error fetching portal:', error);
+      }
+    };
+    if (portalId) fetchPortal();
+
+    const local = localStorage.getItem(`training_portal_user_${portalId}`);
+    if (local) {
+      const parsedUser = JSON.parse(local);
+      setUserId(parsedUser.id);
+      setActiveCategory(parsedUser.departments[0]);
+      
+      // If preview user (transient), we prefer the local storage for immediate load but sync with Firestore
+      // Note: If it's a manual preview user (id starts with preview-manual), we ONLY use local storage.
+      // If it's the auto-created one (id starts with preview-), it is in Firestore.
+      if (parsedUser.id.startsWith('preview-manual')) {
+        setUserData(parsedUser);
+      }
+    }
+  }, [portalId, isPreview]);
+
+  useEffect(() => {
+    if (!userId || !db) return;
+    
+    // If it's a manual preview user (mocked), don't try to fetch from Firestore
+    if (userId.startsWith('preview-manual')) return;
+
+    const unsub = onSnapshot(
+      doc(db, 'artifacts', appId, 'public', 'data', 'client_progress', userId),
+      (doc) => {
+        if (doc.exists()) {
+          setUserData(doc.data());
+        } else {
+          // If doc deleted (e.g. admin exited preview), logout
+          localStorage.removeItem(`training_portal_user_${portalId}`);
+          if (onLogout) onLogout();
+        }
+      },
+      (error) => {
+        console.error('Error fetching user data:', error);
+        if (error.code === 'permission-denied') {
+           localStorage.removeItem(`training_portal_user_${portalId}`);
+           if (onLogout) onLogout();
+        }
+      }
+    );
+    return () => unsub();
+  }, [userId, portalId, onLogout]);
+
+  // --- TIME TRACKING EFFECTS ---
+  useEffect(() => {
+    const saveCurrentSession = () => {
+      const { isPreview: preview, userId: uid, userData: uData, portalId: pId } = stateRefs.current;
+      if (!activeVideoRef.current || !sessionStartRef.current) return;
+      
+      const elapsed = Math.floor((Date.now() - sessionStartRef.current) / 1000);
+      if (elapsed <= 0) return;
+
+      if (uid && uid.startsWith('preview-manual')) {
+         // Update Local Storage for Manual Preview Mode (Mock)
+         if (uData && pId) {
+             const updatedTimes = { ...uData.watchTimes };
+             updatedTimes[activeVideoRef.current] = (updatedTimes[activeVideoRef.current] || 0) + elapsed;
+             
+             const updatedUser = { ...uData, watchTimes: updatedTimes };
+             stateRefs.current.userData = updatedUser;
+             setUserData(updatedUser);
+             localStorage.setItem(`training_portal_user_${pId}`, JSON.stringify(updatedUser));
+         }
+      } else if (uid) {
+         // Update Firestore for Real User AND Automatic Preview User (transient)
+         updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'client_progress', uid), {
+           [`watchTimes.${activeVideoRef.current}`]: increment(elapsed)
+         }).catch(e => console.error("Error saving time", e));
+      }
+    };
+
+    if (playingVideoId !== activeVideoRef.current) {
+      saveCurrentSession();
+      activeVideoRef.current = playingVideoId;
+      sessionStartRef.current = playingVideoId ? Date.now() : null;
+    }
+
+    window.addEventListener('beforeunload', saveCurrentSession);
+    return () => {
+      window.removeEventListener('beforeunload', saveCurrentSession);
+    };
+  }, [playingVideoId]);
+
+  // Catch component unmount (Logout)
+  useEffect(() => {
+    return () => {
+      const { userId: uid, userData: uData, portalId: pId } = stateRefs.current;
+      if (activeVideoRef.current && sessionStartRef.current) {
+         const elapsed = Math.floor((Date.now() - sessionStartRef.current) / 1000);
+         if (elapsed > 0) {
+            if (uid && uid.startsWith('preview-manual')) {
+                 if (uData && pId) {
+                     const updatedTimes = { ...uData.watchTimes };
+                     updatedTimes[activeVideoRef.current] = (updatedTimes[activeVideoRef.current] || 0) + elapsed;
+                     const updatedUser = { ...uData, watchTimes: updatedTimes };
+                     localStorage.setItem(`training_portal_user_${pId}`, JSON.stringify(updatedUser));
+                 }
+            } else if (uid) {
+                updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'client_progress', uid), {
+                  [`watchTimes.${activeVideoRef.current}`]: increment(elapsed)
+                }).catch(e => console.error("Error saving time on unmount", e));
+            }
+         }
+      }
+    };
+  }, []);
+
+  const myVideos = useMemo(() => {
+    if (!userData?.departments) return [];
+    return VIDEO_DATABASE.filter(v => userData.departments.includes(v.category));
+  }, [userData]);
+
+  const filteredVideos = useMemo(() => {
+    if (!searchQuery) return myVideos;
+    return myVideos.filter(v => 
+      v.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      v.category.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [myVideos, searchQuery]);
+
+  const videosByCategory = useMemo(() => {
+    return filteredVideos.reduce((acc: any, video) => {
+      if (!acc[video.category]) acc[video.category] = [];
+      acc[video.category].push(video);
+      return acc;
+    }, {});
+  }, [filteredVideos]);
+
+  const watchedCount = userData?.watched?.length || 0;
+  const totalCount = myVideos.length;
+  const progress = totalCount > 0 ? Math.round((watchedCount / totalCount) * 100) : 0;
+  const isComplete = progress === 100;
+
+  const toggleWatch = async (videoId: string) => {
+    const currentWatched = userData.watched || [];
+    let newWatched;
+    if (currentWatched.includes(videoId)) {
+      newWatched = currentWatched.filter((id: string) => id !== videoId);
+    } else {
+      newWatched = [...currentWatched, videoId];
+    }
+
+    if (userId && userId.startsWith('preview-manual')) {
+      const updatedUser = { ...userData, watched: newWatched };
+      setUserData(updatedUser);
+      localStorage.setItem(`training_portal_user_${portalId}`, JSON.stringify(updatedUser));
+      return;
+    }
+
+    try {
+      await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'client_progress', userId), {
+        watched: newWatched
+      });
+    } catch (error) {
+      showToast('Failed to update progress', 'error');
+    }
+  };
+
+  const handleVideoClick = (video: any) => {
+    if (playingVideoId === video.id) {
+      setPlayingVideoId(null);
+      return;
+    }
+    const embedUrl = getEmbedUrl(video.url);
+    if (embedUrl) {
+      setPlayingVideoId(video.id);
+    } else {
+      window.open(video.url, '_blank');
+    }
+  };
+
+  const handleFinalSubmit = async () => {
+    if (!confirm("Confirm you have completed all training videos?")) return;
+    setSubmitting(true);
+
+    const isChampion = userData.email && portalInfo?.contactEmail && 
+                     userData.email.toLowerCase().trim() === portalInfo.contactEmail.toLowerCase().trim();
+
+    if (userId && userId.startsWith('preview-manual')) {
+      setTimeout(() => {
+        const updatedUser = { ...userData, status: 'completed', completedAt: new Date().toISOString() };
+        setUserData(updatedUser);
+        localStorage.setItem(`training_portal_user_${portalId}`, JSON.stringify(updatedUser));
+        setShowConfetti(true);
+        setSubmitting(false);
+      }, 1000);
+      return;
+    }
+
+    try {
+      await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'client_progress', userId), {
+        status: 'completed',
+        completedAt: serverTimestamp(),
+        requiresNotification: isChampion 
+      });
+      setShowConfetti(true);
+      showToast('Congratulations! Training completed.', 'success');
+    } catch (error) {
+      showToast('Failed to submit', 'error');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const getCategoryProgress = (cat: string) => {
+    const categoryVideos = VIDEO_DATABASE.filter(v => v.category === cat);
+    if (categoryVideos.length === 0) return 0;
+    const done = categoryVideos.filter(v => userData?.watched?.includes(v.id)).length;
+    return Math.round((done / categoryVideos.length) * 100);
+  };
+
+  const categories = userData?.departments || [];
+
+  if (!userData) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="animate-spin text-[#2e69b3] w-8 h-8" />
+      </div>
+    );
+  }
+
+  const displayedCategories = searchQuery ? Object.keys(videosByCategory) : [activeCategory];
+
+  const isChampion = userData.email && portalInfo?.contactEmail && 
+                     userData.email.toLowerCase().trim() === portalInfo.contactEmail.toLowerCase().trim();
+
+  return (
+    <div className="min-h-screen bg-slate-50 font-sans">
+      {/* Confetti Overlay */}
+      {showConfetti && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-sm">
+          <div className="text-center animate-in zoom-in duration-500">
+            <div className="w-32 h-32 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-2xl">
+              <Trophy className="w-16 h-16 text-white" />
+            </div>
+            <h2 className="text-4xl font-bold text-slate-900 mb-2">Congratulations!</h2>
+            <p className="text-xl text-slate-600 mb-2">You've completed your training</p>
+            <p className="text-slate-500">
+              {isPreview ? 'Simulation Complete (No email sent)' : 
+               isChampion ? `Notification sent to ${portalInfo?.consultantEmail || 'Consultant'}` : 'Your progress has been recorded.'}
+            </p>
+            <button
+              onClick={() => setShowConfetti(false)}
+              className="mt-8 px-6 py-3 bg-[#2e69b3] text-white rounded-xl font-semibold hover:bg-[#255491] transition-colors"
+            >
+              Continue
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Header */}
+      <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+        {isPreview && <div className="bg-amber-500 text-xs font-bold text-center py-1 text-slate-900 uppercase tracking-widest">Simulation Mode</div>}
+        <div className="max-w-[1600px] mx-auto px-6 py-4">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => setShowMobileMenu(!showMobileMenu)}
+                className="lg:hidden p-2 hover:bg-slate-100 rounded-lg"
+              >
+                <Menu className="w-5 h-5" />
+              </button>
+              <div className="flex items-center gap-3">
+                <FlyntlokLogo className="w-8 h-8" />
+                <div>
+                  <h1 className="text-xl font-bold text-slate-900 leading-tight">Training Portal</h1>
+                  <p className="text-xs text-slate-500 font-medium">Welcome, {userData.firstName}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-6">
+              <div className="hidden md:flex items-center gap-3 pr-6 border-r border-slate-200">
+                <div className="text-right">
+                  <div className="text-sm font-bold text-slate-900">{watchedCount} / {totalCount}</div>
+                  <div className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Videos</div>
+                </div>
+                <div className="relative w-10 h-10">
+                  <svg className="w-full h-full transform -rotate-90">
+                    <circle cx="20" cy="20" r="16" stroke="currentColor" strokeWidth="3" fill="transparent" className="text-slate-100" />
+                    <circle
+                      cx="20"
+                      cy="20"
+                      r="16"
+                      stroke="currentColor"
+                      strokeWidth="3"
+                      fill="transparent"
+                      className={`transition-all duration-1000 ${progress === 100 ? 'text-emerald-500' : 'text-[#2e69b3]'}`}
+                      strokeDasharray={100}
+                      strokeDashoffset={100 - (100 * progress) / 100}
+                    />
+                  </svg>
+                  <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-slate-700">
+                    {progress}%
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => {
+                    const mailto = `mailto:?subject=Training Portal Link&body=Check out this training portal: ${window.location.href}`;
+                    window.location.href = mailto;
+                  }}
+                  className="hidden sm:flex items-center gap-2 px-3 py-2 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-lg text-sm font-medium transition-colors border border-slate-200"
+                >
+                  <Share2 className="w-4 h-4" /> Share
+                </button>
+                <button
+                  onClick={onLogout}
+                  className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  title="Logout"
+                >
+                  <LogOut className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Mobile Menu */}
+      {showMobileMenu && (
+        <div className="lg:hidden fixed inset-0 z-40 bg-white">
+          <div className="p-4 border-b border-slate-200 flex justify-between items-center">
+            <span className="font-semibold">Departments</span>
+            <button onClick={() => setShowMobileMenu(false)}>
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          <div className="p-4 space-y-2">
+            {categories.map((dept: string) => {
+              const config = DEPARTMENT_CONFIG[dept] || {};
+              const Icon = config.icon || Info;
+              const catProgress = getCategoryProgress(dept);
+              return (
+                <button
+                  key={dept}
+                  onClick={() => { setActiveCategory(dept); setShowMobileMenu(false); }}
+                  className={`w-full p-4 rounded-xl flex items-center gap-3 transition-all ${
+                    activeCategory === dept ? 'bg-blue-50 border-2 border-[#2e69b3]' : 'bg-slate-50 border-2 border-transparent'
+                  }`}
+                >
+                  <Icon className={`w-5 h-5 ${activeCategory === dept ? 'text-[#2e69b3]' : 'text-slate-500'}`} />
+                  <div className="flex-1 text-left">
+                    <div className={`font-semibold ${activeCategory === dept ? 'text-[#2e69b3]' : 'text-slate-700'}`}>{dept}</div>
+                    <div className="text-xs text-slate-500">{catProgress}% complete</div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      <div className="max-w-[1600px] mx-auto px-6 py-8">
+        {/* Search */}
+        <div className="mb-8">
+          <div className="relative max-w-lg">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Search across all training videos..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-12 pr-4 py-3.5 bg-white border border-slate-200 rounded-xl shadow-sm focus:ring-2 focus:ring-[#2e69b3] focus:border-transparent outline-none transition-all text-slate-700 placeholder:text-slate-400"
+            />
+            {searchQuery && (
+              <button 
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Category Tabs - Only show if NOT searching */}
+        {!searchQuery && (
+          <div className="hidden lg:flex overflow-x-auto gap-4 mb-8 pb-2">
+            {categories.map((dept: string) => {
+              const catProgress = getCategoryProgress(dept);
+              const isDone = catProgress === 100;
+              const config = DEPARTMENT_CONFIG[dept] || {};
+              const Icon = config.icon || Info;
+
+              return (
+                <button
+                  key={dept}
+                  onClick={() => setActiveCategory(dept)}
+                  className={`
+                    flex-shrink-0 relative px-5 py-4 rounded-xl border-2 text-left transition-all duration-200 min-w-[200px] group
+                    ${activeCategory === dept
+                      ? 'border-[#2e69b3] bg-white shadow-md shadow-blue-100/50'
+                      : 'border-slate-200 bg-white hover:border-blue-200 text-slate-600'
+                    }
+                  `}
+                >
+                  <div className="flex items-center gap-2.5 mb-3">
+                    <div className={`p-1.5 rounded-lg ${activeCategory === dept ? 'bg-blue-50 text-[#2e69b3]' : 'bg-slate-100 text-slate-400'}`}>
+                      <Icon className="w-5 h-5" />
+                    </div>
+                    <span className={`font-bold text-sm ${activeCategory === dept ? 'text-[#2e69b3]' : 'text-slate-600'}`}>
+                      {dept}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all ${isDone ? 'bg-emerald-500' : 'bg-[#2e69b3]'}`}
+                        style={{ width: `${catProgress}%` }}
+                      />
+                    </div>
+                    <span className="text-xs font-bold text-slate-500">{catProgress}%</span>
+                  </div>
+                  {isDone && (
+                    <div className="absolute -top-1.5 -right-1.5 bg-white rounded-full p-0.5 border border-emerald-100">
+                      <CheckCircle className="w-5 h-5 text-emerald-500 fill-emerald-50" />
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Video Sections */}
+        <div className="space-y-12">
+          {displayedCategories.map((category: any) => {
+            const videos = videosByCategory[category] || [];
+            if (videos.length === 0) return null;
+
+            return (
+              <div key={category} className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                {/* Category Header (Always show when searching, show only active when not) */}
+                <div className="flex items-center gap-3 mb-6 pb-2 border-b border-slate-200">
+                  <h2 className="text-xl font-bold text-slate-800">{category}</h2>
+                  <span className="bg-slate-100 text-slate-600 text-xs font-semibold px-2.5 py-0.5 rounded-full">
+                    {videos.length} Videos
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 gap-6">
+                  {videos.map((video: any) => {
+                    const isWatched = userData.watched?.includes(video.id);
+                    const isPlaying = playingVideoId === video.id;
+                    const downloadUrl = getDownloadUrl(video.url);
+                    const thumbUrl = getThumbnailUrl(video.url);
+
+                    return (
+                      <div
+                        key={video.id}
+                        className={`
+                          bg-white rounded-2xl border transition-all duration-300 overflow-hidden
+                          ${isWatched ? 'border-slate-200 bg-slate-50/50' : 'border-slate-200 shadow-sm hover:shadow-md'}
+                          ${isPlaying ? 'ring-2 ring-[#2e69b3] shadow-xl' : ''}
+                        `}
+                      >
+                        <div className={`flex ${isPlaying ? 'flex-col' : 'flex-col lg:flex-row'}`}>
+                          {/* Video Player / Thumbnail */}
+                          {isPlaying ? (
+                            <div className="w-full aspect-video bg-black relative">
+                              <iframe
+                                src={getEmbedUrl(video.url)}
+                                className="absolute inset-0 w-full h-full"
+                                allow="autoplay; encrypted-media"
+                                allowFullScreen
+                                title={video.title}
+                              />
+                            </div>
+                          ) : (
+                            <div
+                              onClick={() => handleVideoClick(video)}
+                              className="w-full lg:w-80 h-48 lg:h-auto min-h-[12rem] bg-slate-900 relative group cursor-pointer overflow-hidden shrink-0"
+                            >
+                              {thumbUrl ? (
+                                <img src={thumbUrl} alt={video.title} className="absolute inset-0 w-full h-full object-cover opacity-60 mix-blend-overlay group-hover:scale-105 transition-transform duration-700" onError={(e: any) => { e.target.style.display = 'none'; }} />
+                              ) : (
+                                <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1557683316-973673baf926?auto=format&fit=crop&w=800&q=80')] bg-cover bg-center opacity-40 mix-blend-overlay"></div>
+                              )}
+                              <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 to-slate-900/20 group-hover:to-slate-900/40 transition-all" />
+                              <div className="absolute inset-0 flex items-center justify-center">
+                                <div className="w-14 h-14 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center group-hover:scale-110 transition-transform duration-300 border border-white/30">
+                                  <Play className="w-6 h-6 text-white ml-1" fill="currentColor" />
+                                </div>
+                              </div>
+                              {video.duration && (
+                                <div className="absolute bottom-3 right-3 bg-black/60 backdrop-blur-sm text-white text-xs font-medium px-2 py-1 rounded">
+                                  {video.duration}
+                                </div>
+                              )}
+                              {isWatched && (
+                                <div className="absolute top-3 left-3 bg-emerald-500 text-white text-xs font-bold px-2 py-1 rounded-md flex items-center gap-1 shadow-sm">
+                                  <Check className="w-3 h-3" strokeWidth={3} /> Watched
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Content */}
+                          <div className="p-6 flex-1 flex flex-col justify-between">
+                            <div>
+                              <div className="flex justify-between items-start gap-4">
+                                <h3 className={`font-bold text-lg leading-tight ${isWatched && !isPlaying ? 'text-slate-500' : 'text-slate-900'}`}>
+                                  {video.title}
+                                </h3>
+                                {isPlaying && (
+                                  <button
+                                    onClick={() => setPlayingVideoId(null)}
+                                    className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-colors"
+                                  >
+                                    <X className="w-5 h-5" />
+                                  </button>
+                                )}
+                              </div>
+                              <p className="text-sm text-slate-500 mt-2 leading-relaxed">
+                                {isPlaying 
+                                  ? 'Video is playing. Don\'t forget to mark it as complete once you are finished.' 
+                                  : 'Click the thumbnail to start watching this training module.'}
+                              </p>
+                            </div>
+
+                            <div className="flex flex-wrap items-center gap-3 mt-6 pt-5 border-t border-slate-100">
+                              <button
+                                onClick={() => handleVideoClick(video)}
+                                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                                  isPlaying
+                                    ? 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-100'
+                                    : 'bg-blue-50 text-[#2e69b3] hover:bg-blue-100 border border-blue-100'
+                                }`}
+                              >
+                                {isPlaying ? <Minimize2 className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                                {isPlaying ? 'Close Player' : 'Watch Now'}
+                              </button>
+
+                              {downloadUrl && (
+                                <a
+                                  href={downloadUrl}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-100 border border-slate-200 transition-colors"
+                                >
+                                  <Download className="w-4 h-4" /> Download
+                                </a>
+                              )}
+
+                              <button
+                                onClick={() => toggleWatch(video.id)}
+                                className={`
+                                  ml-auto px-5 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 shadow-sm
+                                  ${isWatched
+                                    ? 'bg-white border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-700'
+                                    : 'bg-[#2e69b3] text-white hover:bg-[#255491] hover:shadow-md'
+                                  }
+                                `}
+                              >
+                                {isWatched ? (
+                                  <><XCircle className="w-4 h-4" /> Mark Unwatched</>
+                                ) : (
+                                  <><CheckCircle className="w-4 h-4" /> Mark Complete</>
+                                )}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+
+          {displayedCategories.length === 0 && (
+            <div className="text-center py-20 bg-white rounded-2xl border border-slate-200">
+              <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Search className="w-8 h-8 text-slate-300" />
+              </div>
+              <h3 className="text-lg font-semibold text-slate-700 mb-1">No videos found</h3>
+              <p className="text-slate-500">Try adjusting your search terms.</p>
+              <button 
+                onClick={() => setSearchQuery('')}
+                className="mt-4 text-[#2e69b3] font-semibold hover:underline"
+              >
+                Clear Search
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Completion Section */}
+        <div className="mt-16 flex flex-col items-center pb-12">
+          {isComplete ? (
+            <div className="w-full max-w-md text-center">
+              <button
+                onClick={handleFinalSubmit}
+                disabled={submitting || userData.status === 'completed'}
+                className={`
+                  w-full py-4 rounded-2xl font-bold text-lg text-white shadow-xl transition-all flex items-center justify-center gap-3
+                  ${userData.status === 'completed'
+                    ? 'bg-emerald-600 cursor-default ring-4 ring-emerald-100'
+                    : 'bg-gradient-to-r from-[#2e69b3] to-[#255491] hover:from-[#255491] hover:to-[#1e4374] hover:shadow-2xl hover:-translate-y-0.5'
+                  }
+                `}
+              >
+                {submitting ? <Loader2 className="w-6 h-6 animate-spin" /> : <Award className="w-6 h-6" />}
+                {userData.status === 'completed' ? 'Training Certification Submitted' : 'Submit Final Completion'}
+              </button>
+              {userData.status === 'completed' && (
+                <p className="text-emerald-700 font-medium mt-4 flex items-center justify-center gap-2 bg-emerald-50 py-2 px-4 rounded-lg inline-flex">
+                  <CheckCircle className="w-5 h-5" />
+                  {isChampion ? 'Success! Your consultant has been notified.' : 'Training recorded successfully.'}
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="flex items-center gap-3 px-8 py-5 bg-slate-100 border border-slate-200 rounded-2xl text-slate-600 shadow-inner">
+              <TrendingUp className="w-5 h-5 text-slate-400" />
+              <span className="font-medium">Complete all {totalCount} videos to unlock certification</span>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
