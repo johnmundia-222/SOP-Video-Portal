@@ -653,11 +653,15 @@ function ConsultantDashboard({ user, showToast }: any) {
   const handleCreatePortal = async (e: React.FormEvent) => {
     e.preventDefault();
     const formData = new FormData(e.target as HTMLFormElement);
+    const users = String(formData.get('users') || '')
+      .split(/[\n,]/)
+      .map((entry) => entry.trim())
+      .filter(Boolean);
     
     try {
       await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'portals'), {
         company: formData.get('company'),
-        contactEmail: formData.get('email'),
+        users,
         consultantEmail: formData.get('consultantEmail'),
         createdAt: serverTimestamp(),
         consultantId: user.uid,
@@ -752,10 +756,13 @@ function ConsultantDashboard({ user, showToast }: any) {
     }
   };
 
-  const filteredPortals = portals.filter(p => 
-    p.company?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.contactEmail?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredPortals = portals.filter(p => {
+    const q = searchTerm.toLowerCase();
+    const usersText = Array.isArray(p.users) ? p.users.join(' ').toLowerCase() : '';
+    return p.company?.toLowerCase().includes(q) ||
+      p.consultantEmail?.toLowerCase().includes(q) ||
+      usersText.includes(q);
+  });
 
   // Users from Firestore are enough now since we save the preview user to Firestore transiently
   const getUsersForPortal = (portalId: string) => {
@@ -920,9 +927,6 @@ function ConsultantDashboard({ user, showToast }: any) {
                         const percent = totalAssigned > 0 ? Math.round((watched / totalAssigned) * 100) : 0;
                         const isExpanded = expandedUserIds.has(user.id);
                         
-                        // Identify Champion visually
-                        const isChampion = user.email && selectedPortal.contactEmail && 
-                                           user.email.toLowerCase().trim() === selectedPortal.contactEmail.toLowerCase().trim();
                         const isSimulated = user.isTransient || user.isPreview;
 
                         return (
@@ -937,7 +941,6 @@ function ConsultantDashboard({ user, showToast }: any) {
                                   <div>
                                     <div className="flex items-center gap-2">
                                       {user.firstName} {user.lastName}
-                                      {isChampion && <span className="text-[10px] bg-blue-100 text-[#2e69b3] px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">Champion</span>}
                                       {isSimulated && <span className="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">Preview User</span>}
                                     </div>
                                     <div className="text-xs text-slate-500 font-normal mt-0.5">{user.email}</div>
@@ -1057,15 +1060,15 @@ function ConsultantDashboard({ user, showToast }: any) {
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">Main Contact Email (Champion)</label>
-                <input
-                  name="email"
-                  type="email"
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Users</label>
+                <textarea
+                  name="users"
                   required
-                  className="w-full border border-slate-200 rounded-xl p-3.5 focus:ring-4 focus:ring-blue-500/10 focus:border-[#2e69b3] outline-none transition-all"
-                  placeholder="admin@client.com"
+                  rows={4}
+                  className="w-full border border-slate-200 rounded-xl p-3.5 focus:ring-4 focus:ring-blue-500/10 focus:border-[#2e69b3] outline-none transition-all resize-none"
+                  placeholder="Jane Smith\njane@client.com\nJohn Doe"
                 />
-                <p className="text-xs text-slate-500 mt-1">This user's completion will trigger the notification.</p>
+                <p className="text-xs text-slate-500 mt-1">Add names or emails separated by commas or line breaks.</p>
               </div>
               <div className="pt-4 border-t border-slate-100">
                 <label className="block text-sm font-semibold text-slate-700 mb-2">Consultant Email (Notifications)</label>
@@ -1540,9 +1543,6 @@ function ClientHub({ portalId, showToast, onLogout, isPreview }: any) {
     if (!confirm("Confirm you have completed all training videos?")) return;
     setSubmitting(true);
 
-    const isChampion = userData.email && portalInfo?.contactEmail && 
-                     userData.email.toLowerCase().trim() === portalInfo.contactEmail.toLowerCase().trim();
-
     if (userId && userId.startsWith('preview-manual')) {
       setTimeout(() => {
         const updatedUser = { ...userData, status: 'completed', completedAt: new Date().toISOString() };
@@ -1558,7 +1558,7 @@ function ClientHub({ portalId, showToast, onLogout, isPreview }: any) {
       await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'client_progress', userId), {
         status: 'completed',
         completedAt: serverTimestamp(),
-        requiresNotification: isChampion 
+        requiresNotification: true
       });
       setShowConfetti(true);
       showToast('Congratulations! Training completed.', 'success');
@@ -1588,9 +1588,6 @@ function ClientHub({ portalId, showToast, onLogout, isPreview }: any) {
 
   const displayedCategories = searchQuery ? Object.keys(videosByCategory) : [activeCategory];
 
-  const isChampion = userData.email && portalInfo?.contactEmail && 
-                     userData.email.toLowerCase().trim() === portalInfo.contactEmail.toLowerCase().trim();
-
   return (
     <div className="min-h-screen bg-slate-50 font-sans">
       {/* Confetti Overlay */}
@@ -1604,7 +1601,7 @@ function ClientHub({ portalId, showToast, onLogout, isPreview }: any) {
             <p className="text-xl text-slate-600 mb-2">You've completed your training</p>
             <p className="text-slate-500">
               {isPreview ? 'Simulation Complete (No email sent)' : 
-               isChampion ? `Notification sent to ${portalInfo?.consultantEmail || 'Consultant'}` : 'Your progress has been recorded.'}
+               `Notification sent to ${portalInfo?.consultantEmail || 'Consultant'}`}
             </p>
             <button
               onClick={() => setShowConfetti(false)}
@@ -1978,7 +1975,7 @@ function ClientHub({ portalId, showToast, onLogout, isPreview }: any) {
               {userData.status === 'completed' && (
                 <p className="text-emerald-700 font-medium mt-4 flex items-center justify-center gap-2 bg-emerald-50 py-2 px-4 rounded-lg inline-flex">
                   <CheckCircle className="w-5 h-5" />
-                  {isChampion ? 'Success! Your consultant has been notified.' : 'Training recorded successfully.'}
+                  {'Success! Your consultant has been notified.'}
                 </p>
               )}
             </div>
