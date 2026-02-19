@@ -75,6 +75,10 @@ const DEPARTMENT_CONFIG: any = {
   'Purchasing': { icon: CreditCard, color: 'text-rose-600', bg: 'bg-rose-50', border: 'border-rose-200', gradient: 'from-rose-500 to-rose-600' }
 };
 
+const ALL_DEPARTMENTS = Object.keys(DEPARTMENT_CONFIG);
+
+const getAssignedDepartments = (_user: any) => ALL_DEPARTMENTS;
+
 // --- UTILITY FUNCTIONS ---
 
 const getEmbedUrl = (url: string) => {
@@ -277,7 +281,7 @@ function ClientExperience({ portalId, showToast, isPreview = false }: { portalId
       name: 'Admin Preview',
       email: 'admin@preview.com',
       role: 'Administrator',
-      departments: Object.keys(DEPARTMENT_CONFIG),
+      departments: ALL_DEPARTMENTS,
       watched: [],
       watchTimes: {},
       status: 'in-progress',
@@ -432,7 +436,7 @@ function ClientLogin({ portalId, onLoginSuccess, onBack, showToast, isPreview }:
           lastName: lastName || 'Preview',
           name: `${firstName} ${lastName}`,
           role: 'Viewer',
-          departments: Object.keys(DEPARTMENT_CONFIG), 
+          departments: ALL_DEPARTMENTS,
           watched: [],
           watchTimes: {},
           status: 'in-progress',
@@ -704,7 +708,7 @@ function ConsultantDashboard({ user, showToast }: any) {
       name: 'Admin Preview (Simulated)',
       email: portal.consultantEmail || 'admin@preview.com',
       role: 'Administrator',
-      departments: Object.keys(DEPARTMENT_CONFIG),
+      departments: ALL_DEPARTMENTS,
       watched: [],
       watchTimes: {},
       status: 'in-progress',
@@ -910,7 +914,8 @@ function ConsultantDashboard({ user, showToast }: any) {
                   <tbody className="divide-y divide-slate-100">
                     {getUsersForPortal(selectedPortal.id)
                       .map((user: any) => {
-                        const totalAssigned = VIDEO_DATABASE.filter(v => user.departments?.includes(v.category)).length;
+                        const assignedDepartments = getAssignedDepartments(user);
+                        const totalAssigned = VIDEO_DATABASE.filter(v => assignedDepartments.includes(v.category)).length;
                         const watched = user.watched?.length || 0;
                         const percent = totalAssigned > 0 ? Math.round((watched / totalAssigned) * 100) : 0;
                         const isExpanded = expandedUserIds.has(user.id);
@@ -969,7 +974,7 @@ function ConsultantDashboard({ user, showToast }: any) {
                                   <div className="ml-7">
                                     <h4 className="text-xs font-bold uppercase text-slate-400 tracking-wider mb-4">Detailed Video Logs</h4>
                                     <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
-                                      {VIDEO_DATABASE.filter(v => user.departments?.includes(v.category)).map(video => {
+                                      {VIDEO_DATABASE.filter(v => assignedDepartments.includes(v.category)).map(video => {
                                         const isWatched = user.watched?.includes(video.id);
                                         const watchTimeSecs = user.watchTimes?.[video.id] || 0;
                                         
@@ -1103,7 +1108,6 @@ function ClientOnboarding({ portalId, onJoin, onBack, showToast, isPreview }: an
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [role, setRole] = useState('');
-  const [selectedDepts, setSelectedDepts] = useState(['Introductions']);
   const [portalInfo, setPortalInfo] = useState<any>(null);
   const [checkingDuplicate, setCheckingDuplicate] = useState(false);
 
@@ -1121,18 +1125,9 @@ function ClientOnboarding({ portalId, onJoin, onBack, showToast, isPreview }: an
     fetchPortal();
   }, [portalId]);
 
-  const toggleDept = (dept: string) => {
-    if (dept === 'Introductions') return;
-    if (selectedDepts.includes(dept)) {
-      setSelectedDepts(selectedDepts.filter(d => d !== dept));
-    } else {
-      setSelectedDepts([...selectedDepts, dept]);
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!firstName || !lastName || !email || !role || selectedDepts.length === 0) {
+    if (!firstName || !lastName || !email || !role) {
       showToast('Please fill in all fields', 'error');
       return;
     }
@@ -1150,7 +1145,7 @@ function ClientOnboarding({ portalId, onJoin, onBack, showToast, isPreview }: an
           name: `${firstName} ${lastName}`,
           email,
           role,
-          departments: selectedDepts,
+          departments: ALL_DEPARTMENTS,
           watched: [],
           watchTimes: {},
           status: 'in-progress',
@@ -1190,7 +1185,7 @@ function ClientOnboarding({ portalId, onJoin, onBack, showToast, isPreview }: an
         name: `${firstName} ${lastName}`,
         email,
         role,
-        departments: selectedDepts,
+        departments: ALL_DEPARTMENTS,
         watched: [],
         watchTimes: {},
         status: 'in-progress',
@@ -1209,7 +1204,7 @@ function ClientOnboarding({ portalId, onJoin, onBack, showToast, isPreview }: an
     }
   };
 
-  const departmentsList = Object.keys(DEPARTMENT_CONFIG);
+  const departmentsList = ALL_DEPARTMENTS;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 flex flex-col items-center justify-center p-4 lg:p-8">
@@ -1286,18 +1281,17 @@ function ClientOnboarding({ portalId, onJoin, onBack, showToast, isPreview }: an
             </div>
 
             <div className="pt-6 border-t border-slate-100">
-              <label className="block text-sm font-semibold text-slate-700 mb-4">Select Your Departments</label>
+              <label className="block text-sm font-semibold text-slate-700 mb-4">Training Tracks Included</label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {departmentsList.map(dept => {
                   const config = DEPARTMENT_CONFIG[dept] || {};
                   const Icon = config.icon || Info;
-                  const isSelected = selectedDepts.includes(dept);
-                  const isLocked = dept === 'Introductions';
+                  const isSelected = true;
+                  const isLocked = true;
 
                   return (
                     <div
                       key={dept}
-                      onClick={() => toggleDept(dept)}
                       className={`
                         relative p-4 rounded-xl border-2 transition-all duration-200 flex items-center gap-4
                         ${isLocked ? 'border-slate-200 bg-slate-50 cursor-not-allowed' : 'cursor-pointer hover:shadow-md'}
@@ -1309,7 +1303,7 @@ function ClientOnboarding({ portalId, onJoin, onBack, showToast, isPreview }: an
                       </div>
                       <div className="flex-1">
                         <span className={`font-semibold block ${isSelected ? 'text-[#2e69b3]' : 'text-slate-700'}`}>{dept}</span>
-                        {isLocked && <span className="text-xs text-slate-500">Required</span>}
+                        {isLocked && <span className="text-xs text-slate-500">Included for every client user</span>}
                       </div>
                       {isSelected && (
                         <CheckCircle className={`w-5 h-5 ${isLocked ? 'text-slate-400' : 'text-[#2e69b3]'}`} />
@@ -1375,7 +1369,7 @@ function ClientHub({ portalId, showToast, onLogout, isPreview }: any) {
     if (local) {
       const parsedUser = JSON.parse(local);
       setUserId(parsedUser.id);
-      setActiveCategory(parsedUser.departments[0]);
+      setActiveCategory(getAssignedDepartments(parsedUser)[0]);
       
       // If preview user (transient), we prefer the local storage for immediate load but sync with Firestore
       // Note: If it's a manual preview user (id starts with preview-manual), we ONLY use local storage.
@@ -1479,8 +1473,8 @@ function ClientHub({ portalId, showToast, onLogout, isPreview }: any) {
   }, []);
 
   const myVideos = useMemo(() => {
-    if (!userData?.departments) return [];
-    return VIDEO_DATABASE.filter(v => userData.departments.includes(v.category));
+    const assignedDepartments = getAssignedDepartments(userData);
+    return VIDEO_DATABASE.filter(v => assignedDepartments.includes(v.category));
   }, [userData]);
 
   const filteredVideos = useMemo(() => {
@@ -1582,7 +1576,7 @@ function ClientHub({ portalId, showToast, onLogout, isPreview }: any) {
     return Math.round((done / categoryVideos.length) * 100);
   };
 
-  const categories = userData?.departments || [];
+  const categories = getAssignedDepartments(userData);
 
   if (!userData) {
     return (
